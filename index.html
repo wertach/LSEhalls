@@ -1,42 +1,566 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello OpportunityFinder</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f8fafc;
-      color: #0f172a;
-    }
-    main {
-      text-align: center;
-      padding: 2rem 3rem;
-      border-radius: 0.75rem;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-      background: white;
-    }
-    h1 {
-      margin: 0 0 0.5rem;
-      font-size: 2.5rem;
-    }
-    p {
-      margin: 0;
-      font-size: 1.1rem;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LSE Halls of Residence – Map & Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --sc:   #1D4ED8;
+    --sc-bg:#DBEAFE;
+    --sc-lt:#EFF6FF;
+    --cat:  #B91C1C;
+    --cat-bg:#FEE2E2;
+    --cat-lt:#FFF5F5;
+    --lse:  #15803D;
+    --tube: #525252;
+    --ink:  #1E293B;
+    --muted:#64748B;
+    --border:#E2E8F0;
+    --page: #F8F7F3;
+    --white:#FFFFFF;
+    --gold: #B45309;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  /* ── HEADER ───────────────────────────────────────────────── */
+  header {
+    background: var(--ink);
+    color: white;
+    padding: 28px 40px 22px;
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: -0.3px;
+  }
+  header p {
+    font-size: 13px;
+    color: #94A3B8;
+    font-weight: 300;
+  }
+  .legend-pills {
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .pill-sc  { background: var(--sc-bg); color: var(--sc); }
+  .pill-cat { background: var(--cat-bg); color: var(--cat); }
+  .pill-lse { background: #DCFCE7; color: var(--lse); }
+  .pill-tube{ background: #F1F5F9; color: var(--tube); }
+  .pill-dot {
+    width:10px; height:10px; border-radius:50%;
+    border: 2px solid currentColor;
+  }
+  .pill-dot.filled { background: currentColor; }
+
+  /* ── LAYOUT ───────────────────────────────────────────────── */
+  .container { max-width: 1280px; margin: 0 auto; padding: 28px 28px 60px; }
+
+  section { margin-bottom: 44px; }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 19px;
+    font-weight: 400;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title span {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  /* ── MAP ──────────────────────────────────────────────────── */
+  #map {
+    width: 100%;
+    height: 560px;
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    border: 1px solid var(--border);
+  }
+
+  /* ── TABLE ────────────────────────────────────────────────── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+  }
+
+  thead th {
+    background: var(--ink);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 12px 14px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  thead th:first-child { border-radius: 0; }
+
+  /* Section sub-headers */
+  .sub-header td {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-top: 3px solid;
+  }
+  .sub-header.sc td  { background: var(--sc-bg); color: var(--sc); border-color: var(--sc); }
+  .sub-header.cat td { background: var(--cat-bg); color: var(--cat); border-color: var(--cat); }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: #F8FAFC; }
+  tbody tr.sc-row { background: var(--sc-lt); }
+  tbody tr.sc-row:hover { background: #DBEAFE; }
+  tbody tr.cat-row { background: var(--cat-lt); }
+  tbody tr.cat-row:hover { background: #FEE2E2; }
+
+  td { padding: 11px 14px; vertical-align: middle; line-height: 1.4; }
+
+  .id-badge {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .id-badge.sc  { background: var(--sc); }
+  .id-badge.cat { background: var(--cat); }
+
+  .hall-name { font-weight: 600; font-size: 13.5px; }
+  .dist      { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .price-cell { font-variant-numeric: tabular-nums; }
+  .price-main { font-weight: 600; font-size: 14px; }
+  .price-alt  { font-size: 11.5px; color: var(--muted); }
+
+  .weeks-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .weeks-31 { background: #FEF9C3; color: #854D0E; }
+  .weeks-38 { background: #F1F5F9; color: var(--muted); }
+  .weeks-39 { background: #F1F5F9; color: var(--muted); }
+  .weeks-40 { background: #DCFCE7; color: #166534; }
+
+  /* ── HIGHLIGHT BADGES ─────────────────────────────────────── */
+  .badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-cheapest-sc   { background: #EDE9FE; color: #5B21B6; }
+  .badge-cheapest-cat31{ background: #FEF3C7; color: var(--gold); }
+  .badge-cheapest-cat38{ background: #FEF9C3; color: #854D0E; }
+  .badge-closest       { background: #DCFCE7; color: #166534; }
+  .badge-largest-sh    { background: #CFFAFE; color: #0E7490; }
+  .badge-largest-en    { background: #FCE7F3; color: #9D174D; }
+
+  /* ── FOOTNOTES ────────────────────────────────────────────── */
+  .notes {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
+  }
+  .note {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .note-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .note strong { display: block; margin-bottom: 2px; font-size: 12px; }
+
+  /* ── PRINT ────────────────────────────────────────────────── */
+  @media print {
+    header { padding: 18px 28px; }
+    .container { padding: 16px 20px 30px; }
+    #map { height: 480px; page-break-after: always; }
+    section:last-child { page-break-before: always; }
+    .table-wrap { box-shadow: none; border: 1px solid #ccc; }
+    body { background: white; }
+  }
+</style>
 </head>
 <body>
-  <main>
-    <h1>Hello, OpportunityFinder!</h1>
-    <p>Your simple web page is ready to go!</p>
-  </main>
+
+<header>
+  <div>
+    <h1>LSE Halls of Residence</h1>
+    <p>Map & Comparison · Central London · 2024–25 indicative prices</p>
+  </div>
+  <div class="legend-pills">
+    <div class="pill pill-sc"><div class="pill-dot filled"></div>Self-Catering</div>
+    <div class="pill pill-cat"><div class="pill-dot filled"></div>Catered</div>
+    <div class="pill pill-lse"><div class="pill-dot filled"></div>LSE Campus</div>
+    <div class="pill pill-tube"><div class="pill-dot"></div>Tube</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- MAP -->
+  <section>
+    <div class="section-title">
+      Map
+      <span>Click any marker for details · Zoom and pan freely</span>
+    </div>
+    <div id="map"></div>
+  </section>
+
+  <!-- TABLE -->
+  <section>
+    <div class="section-title">
+      Comparison Table
+      <span>Sorted by annual cost (cheapest first) within each category</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:42px">#</th>
+            <th>Hall</th>
+            <th>Annual Cost</th>
+            <th>Room Size</th>
+            <th>Bathroom</th>
+            <th>Contract</th>
+            <th>Layout / Type</th>
+            <th>Highlights</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="notes">
+      <div class="note"><div class="note-icon">💜</div><div><strong>Cheapest Self-Catering</strong>Sidney Webb at £10,894/yr. Note the 40-week contract and south-of-river location.</div></div>
+      <div class="note"><div class="note-icon">🏅</div><div><strong>Cheapest Catered (31w)</strong>Passfield Hall at £9,116/yr — short 31-week contract only; you'll need other accommodation in holidays.</div></div>
+      <div class="note"><div class="note-icon">🥇</div><div><strong>Cheapest Catered (&gt;31w)</strong>Rosebery Hall at £11,448/yr on a 38-week contract — meals included for the full term.</div></div>
+      <div class="note"><div class="note-icon">📍</div><div><strong>Closest to LSE</strong>High Holborn — just 600m (approx. 8 min walk). The most convenient location by far.</div></div>
+      <div class="note"><div class="note-icon">🚿</div><div><strong>Largest Room (Shared Bath)</strong>Bankside House at 12.5 m² — catered, corridors, south of the river.</div></div>
+      <div class="note"><div class="note-icon">🛁</div><div><strong>Largest Room (Ensuite)</strong>Bankside House again at 17 m² — the only catered hall with a large ensuite option.</div></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────
+const halls = [
+  // Self-catering
+  { id:'SC1', cat:'SC', name:'High Holborn', lat:51.5159908, lon:-0.1247508,
+    price:'£14,124', priceAlt:'', priceLo:14124,
+    sizeShared:'9.5–12.5 m²', sizeEnsuite:null, sizeSharedVal:11.0, sizeEnsuiteVal:null,
+    bath:'Shared (sink in room)', weeks:38, layout:'Flats for 4–5',
+    dist:600 },
+  { id:'SC2', cat:'SC', name:'Sidney Webb', lat:51.4968542, lon:-0.0885809,
+    price:'£10,894', priceAlt:'', priceLo:10894,
+    sizeShared:'10–12 m²', sizeEnsuite:null, sizeSharedVal:11.0, sizeEnsuiteVal:null,
+    bath:'Shared', weeks:40, layout:'Flats for 6–8',
+    dist:2747 },
+  { id:'SC3', cat:'SC', name:'Westminster Bridge', lat:51.4997380, lon:-0.1141895,
+    price:'£12,732', priceAlt:'£14,104 ensuite', priceLo:12732,
+    sizeShared:'8.5 m²', sizeEnsuite:'13.4 m²', sizeSharedVal:8.5, sizeEnsuiteVal:13.4,
+    bath:'Shared or Ensuite', weeks:39, layout:'Flats / corridors',
+    dist:1642 },
+  // Catered
+  { id:'C1', cat:'C', name:'Bankside House', lat:51.5063632, lon:-0.0986061,
+    price:'£11,567', priceAlt:'£13,194 ensuite', priceLo:11567,
+    sizeShared:'12.5 m²', sizeEnsuite:'17 m²', sizeSharedVal:12.5, sizeEnsuiteVal:17.0,
+    bath:'Shared or Ensuite', weeks:38, layout:'Corridors',
+    dist:1527 },
+  { id:'C2', cat:'C', name:'Passfield Hall', lat:51.5252445, lon:-0.1307959,
+    price:'£9,116', priceAlt:'', priceLo:9116,
+    sizeShared:'?', sizeEnsuite:null, sizeSharedVal:null, sizeEnsuiteVal:null,
+    bath:'Shared (sink in room)', weeks:31, layout:'Corridors, cubicles',
+    dist:1558 },
+  { id:'C3', cat:'C', name:'Rosebery Hall', lat:51.5275605, lon:-0.1070654,
+    price:'£11,448', priceAlt:'', priceLo:11448,
+    sizeShared:'10.5 m²', sizeEnsuite:null, sizeSharedVal:10.5, sizeEnsuiteVal:null,
+    bath:'Shared (sink in room)', weeks:38, layout:'Corridors, cubicles',
+    dist:1597 },
+  { id:'C4', cat:'C', name:'Carr-Saunders Hall', lat:51.5221660, lon:-0.1383028,
+    price:'£9,201', priceAlt:'', priceLo:9201,
+    sizeShared:'9 m²', sizeEnsuite:null, sizeSharedVal:9.0, sizeEnsuiteVal:null,
+    bath:'Shared (sink in room)', weeks:31, layout:'Corridors, cubicles',
+    dist:1739 },
+  { id:'C5', cat:'C', name:'College Hall', lat:51.5221251, lon:-0.1312991,
+    price:'£13,148', priceAlt:'£15,152 ensuite', priceLo:13148,
+    sizeShared:'12 m²', sizeEnsuite:'14 m²', sizeSharedVal:12.0, sizeEnsuiteVal:14.0,
+    bath:'Shared (×3) or Ensuite (sink in room)', weeks:40, layout:'Corridors',
+    dist:1336 },
+  { id:'C6', cat:'C', name:'Connaught Hall', lat:51.5245292, lon:-0.1293987,
+    price:'£13,054', priceAlt:'', priceLo:13054,
+    sizeShared:'9 m²', sizeEnsuite:null, sizeSharedVal:9.0, sizeEnsuiteVal:null,
+    bath:'Shared ×5–6 (sink in room)', weeks:40, layout:'',
+    dist:1436 },
+  { id:'C7', cat:'C', name:'The Garden Halls', lat:51.5269521, lon:-0.1261650,
+    price:'£12,703', priceAlt:'£13,548 townhouse', priceLo:12703,
+    sizeShared:'10 m²', sizeEnsuite:null, sizeSharedVal:10.0, sizeEnsuiteVal:null,
+    bath:'Private WC, shower ×2', weeks:40, layout:'Townhouse 14–18',
+    dist:1545 },
+  { id:'C8', cat:'C', name:'International Hall', lat:51.5237000, lon:-0.1211711,
+    price:'£12,020', priceAlt:'', priceLo:12020,
+    sizeShared:'10 m²', sizeEnsuite:null, sizeSharedVal:10.0, sizeEnsuiteVal:null,
+    bath:'Shared ×5–6', weeks:40, layout:'Cubicles',
+    dist:1080 },
+  { id:'C9', cat:'C', name:'Nutford House', lat:51.5171465, lon:-0.1630200,
+    price:'£11,726', priceAlt:'', priceLo:11726,
+    sizeShared:'10.4 m²', sizeEnsuite:null, sizeSharedVal:10.4, sizeEnsuiteVal:null,
+    bath:'Shared ×4 (sink in room)', weeks:40, layout:'Cubicles',
+    dist:3236 },
+];
+
+const lse = { lat:51.5144388, lon:-0.1164513 };
+
+const tubeStations = [
+  { name:'Holborn',           lat:51.5174277, lon:-0.1199958 },
+  { name:'Russell Square',    lat:51.5228268, lon:-0.1257124 },
+  { name:'Goodge Street',     lat:51.5206203, lon:-0.1344842 },
+  { name:'Farringdon',        lat:51.5203380, lon:-0.1054851 },
+  { name:'Southwark',         lat:51.5039260, lon:-0.1049685 },
+  { name:'Borough',           lat:51.5012449, lon:-0.0936138 },
+  { name:'Waterloo',          lat:51.5032404, lon:-0.1134032 },
+  { name:'Elephant & Castle', lat:51.4946011, lon:-0.1003290 },
+  { name:'Marble Arch',       lat:51.5135417, lon:-0.1592045 },
+  { name:'Temple',            lat:51.5109454, lon:-0.1136565 },
+  { name:'Chancery Lane',     lat:51.5161323, lon:-0.1120192 },
+];
+
+// Determine highlights
+const scHalls  = halls.filter(h => h.cat === 'SC');
+const catHalls = halls.filter(h => h.cat === 'C');
+const cheapestSC     = scHalls.reduce((a,b) => a.priceLo < b.priceLo ? a : b);
+const cheapestCat31  = catHalls.filter(h=>h.weeks===31).reduce((a,b)=>a.priceLo<b.priceLo?a:b);
+const cheapestCat38p = catHalls.filter(h=>h.weeks>31).reduce((a,b)=>a.priceLo<b.priceLo?a:b);
+const closest = halls.reduce((a,b) => a.dist < b.dist ? a : b);
+const largestShared  = halls.filter(h=>h.sizeSharedVal).reduce((a,b)=>a.sizeSharedVal>b.sizeSharedVal?a:b);
+const largestEnsuite = halls.filter(h=>h.sizeEnsuiteVal).reduce((a,b)=>a.sizeEnsuiteVal>b.sizeEnsuiteVal?a:b);
+
+function getBadges(h) {
+  const b = [];
+  if (h.id === cheapestSC.id)     b.push({cls:'badge-cheapest-sc',   icon:'💜', text:'Cheapest self-catering'});
+  if (h.id === cheapestCat31.id)  b.push({cls:'badge-cheapest-cat31',icon:'🏅', text:'Cheapest catered (31w)'});
+  if (h.id === cheapestCat38p.id) b.push({cls:'badge-cheapest-cat38',icon:'🥇', text:'Cheapest catered (>31w)'});
+  if (h.id === closest.id)        b.push({cls:'badge-closest',       icon:'📍', text:'Closest to LSE'});
+  if (h.id === largestShared.id)  b.push({cls:'badge-largest-sh',    icon:'🚿', text:'Largest room (shared)'});
+  if (h.id === largestEnsuite.id) b.push({cls:'badge-largest-en',    icon:'🛁', text:'Largest room (ensuite)'});
+  return b;
+}
+
+// ── MAP ───────────────────────────────────────────────────────────
+const map = L.map('map').setView([51.513, -0.125], 14);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+  maxZoom: 18
+}).addTo(map);
+
+// Custom marker factories
+function makeHallIcon(id, cat) {
+  const color = cat === 'SC' ? '#1D4ED8' : '#B91C1C';
+  const fontSize = id.length > 2 ? '8' : '9';
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:28px;height:28px;border-radius:50%;
+      background:${color};color:white;
+      display:flex;align-items:center;justify-content:center;
+      font-family:'DM Sans',sans-serif;font-size:${fontSize}px;font-weight:700;
+      border:2.5px solid white;
+      box-shadow:0 2px 8px rgba(0,0,0,0.3);
+      cursor:pointer;
+    ">${id}</div>`,
+    iconSize:[28,28], iconAnchor:[14,14], popupAnchor:[0,-16]
+  });
+}
+
+function makeTubeIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:14px;height:14px;border-radius:50%;
+      background:#525252;
+      border:2px solid white;
+      box-shadow:0 1px 4px rgba(0,0,0,0.3);
+    "></div>`,
+    iconSize:[14,14], iconAnchor:[7,7], popupAnchor:[0,-10]
+  });
+}
+
+function makeLSEIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:34px;height:34px;
+      background:#15803D;color:white;
+      display:flex;align-items:center;justify-content:center;
+      font-family:'DM Sans',sans-serif;font-size:8px;font-weight:700;
+      border:2.5px solid white;
+      box-shadow:0 2px 10px rgba(0,0,0,0.35);
+      cursor:pointer;
+      clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    ">LSE</div>`,
+    iconSize:[34,34], iconAnchor:[17,17], popupAnchor:[0,-18]
+  });
+}
+
+// LSE marker
+L.marker([lse.lat, lse.lon], {icon: makeLSEIcon(), zIndexOffset:1000})
+  .bindPopup(`<b style="font-family:'DM Sans',sans-serif;font-size:13px">LSE Main Campus</b><br><span style="font-size:11px;color:#64748B">Houghton Street, WC2A 2AE</span>`)
+  .addTo(map);
+
+// Hall markers
+halls.forEach(h => {
+  const badges = getBadges(h);
+  const badgeHtml = badges.map(b => `<span style="
+    display:inline-block;padding:2px 6px;border-radius:3px;
+    font-size:10px;font-weight:600;margin:2px 2px 0 0;
+    background:${b.cls.includes('cheapest-sc')?'#EDE9FE':b.cls.includes('cat31')?'#FEF3C7':b.cls.includes('cat38')?'#FEF9C3':b.cls.includes('closest')?'#DCFCE7':b.cls.includes('sh')?'#CFFAFE':'#FCE7F3'};
+    color:${b.cls.includes('cheapest-sc')?'#5B21B6':b.cls.includes('cat31')?'#92400E':b.cls.includes('cat38')?'#854D0E':b.cls.includes('closest')?'#166534':b.cls.includes('sh')?'#0E7490':'#9D174D'};
+  ">${b.icon} ${b.text}</span>`).join('');
+
+  const popup = `
+    <div style="font-family:'DM Sans',sans-serif;min-width:200px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px">${h.name}</div>
+      <div style="font-size:11px;color:#64748B;margin-bottom:8px">${h.cat==='SC'?'Self-Catering':'Catered'} · ${h.dist}m from LSE</div>
+      <table style="font-size:12px;width:100%;border-collapse:collapse">
+        <tr><td style="color:#64748B;padding:2px 6px 2px 0">Cost</td><td style="font-weight:600">${h.price}${h.priceAlt?' / '+h.priceAlt:''}</td></tr>
+        <tr><td style="color:#64748B;padding:2px 6px 2px 0">Room</td><td>${h.sizeShared}${h.sizeEnsuite?' / '+h.sizeEnsuite+' (ensuite)':''}</td></tr>
+        <tr><td style="color:#64748B;padding:2px 6px 2px 0">Bath</td><td>${h.bath}</td></tr>
+        <tr><td style="color:#64748B;padding:2px 6px 2px 0">Contract</td><td>${h.weeks} weeks</td></tr>
+        ${h.layout?`<tr><td style="color:#64748B;padding:2px 6px 2px 0">Layout</td><td>${h.layout}</td></tr>`:''}
+      </table>
+      ${badgeHtml ? `<div style="margin-top:8px">${badgeHtml}</div>` : ''}
+    </div>`;
+
+  L.marker([h.lat, h.lon], {icon: makeHallIcon(h.id, h.cat)})
+    .bindPopup(popup, {maxWidth:280})
+    .addTo(map);
+});
+
+// Tube station markers
+tubeStations.forEach(t => {
+  L.marker([t.lat, t.lon], {icon: makeTubeIcon(), zIndexOffset:-100})
+    .bindTooltip(t.name, {permanent:false, direction:'top', offset:[0,-8],
+      className:'', opacity:0.95})
+    .addTo(map);
+});
+
+// ── TABLE ─────────────────────────────────────────────────────────
+const tbody = document.getElementById('table-body');
+
+function weeksClass(w) {
+  if (w===31) return 'weeks-31';
+  if (w===38) return 'weeks-38';
+  if (w===39) return 'weeks-39';
+  return 'weeks-40';
+}
+
+function renderSection(list, label, rowClass) {
+  // Section header
+  const hdr = document.createElement('tr');
+  hdr.className = `sub-header ${rowClass}`;
+  hdr.innerHTML = `<td colspan="8">${label}</td>`;
+  tbody.appendChild(hdr);
+
+  list.forEach(h => {
+    const badges = getBadges(h);
+    const badgeHtml = badges.map(b =>
+      `<span class="badge ${b.cls}">${b.icon} ${b.text}</span>`
+    ).join('');
+
+    const tr = document.createElement('tr');
+    tr.className = `${rowClass}-row`;
+    tr.innerHTML = `
+      <td><span class="id-badge ${rowClass}">${h.id}</span></td>
+      <td>
+        <div class="hall-name">${h.name}</div>
+        <div class="dist">${h.dist < 1000 ? h.dist+'m' : (h.dist/1000).toFixed(1)+'km'} from LSE</div>
+      </td>
+      <td class="price-cell">
+        <div class="price-main">${h.price}<span style="font-size:11px;color:#94A3B8;font-weight:400">/yr</span></div>
+        ${h.priceAlt ? `<div class="price-alt">${h.priceAlt}/yr</div>` : ''}
+      </td>
+      <td>
+        <div>${h.sizeShared}</div>
+        ${h.sizeEnsuite ? `<div class="price-alt">${h.sizeEnsuite} ensuite</div>` : ''}
+      </td>
+      <td style="font-size:13px">${h.bath}</td>
+      <td><span class="weeks-badge ${weeksClass(h.weeks)}">${h.weeks}w</span></td>
+      <td style="font-size:12.5px;color:#475569">${h.layout || '—'}</td>
+      <td><div class="badges">${badgeHtml || '<span style="color:#CBD5E1;font-size:12px">—</span>'}</div></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Sort each section by price ascending
+const scSorted  = [...scHalls].sort((a,b)=>a.priceLo-b.priceLo);
+const catSorted = [...catHalls].sort((a,b)=>a.priceLo-b.priceLo);
+
+renderSection(scSorted,  'Self-Catering — you cook for yourself', 'sc');
+renderSection(catSorted, 'Catered — meals included in the price', 'cat');
+</script>
 </body>
 </html>
-
