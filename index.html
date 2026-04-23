@@ -329,7 +329,7 @@
           <tr>
             <th style="width:42px">#</th>
             <th>Hall</th>
-            <th>Annual Cost</th>
+            <th>Cost pa / pw</th>
             <th>Room Size</th>
             <th>Bathroom</th>
             <th>Contract</th>
@@ -381,7 +381,7 @@ const halls = [
       {label:'LSE tour pt.2 (00:46)', url:'https://www.youtube.com/watch?v=R4Fle9MlK1Y&t=46s'},
     ]},
   { id:'SC3', cat:'SC', name:'Westminster Bridge', lat:51.4997380, lon:-0.1141895,
-    price:'£12,732', priceAlt:'£14,104 ensuite', priceLo:12732,
+    price:'£12,732', priceAlt:'£14,104 ensuite', priceLo:12732, priceAltLo:14104,
     sizeShared:'8.5 m²', sizeEnsuite:'13.4 m²', sizeSharedVal:8.5, sizeEnsuiteVal:13.4,
     bath:'Shared or Ensuite', weeks:39, layout:'Flats / corridors',
     dist:1642, postcode:'SE1 7PB', walkMin:25, bikeMin:9, ptMin:11,
@@ -392,7 +392,7 @@ const halls = [
     ]},
   // Catered
   { id:'C1', cat:'C', name:'Bankside House', lat:51.5063632, lon:-0.0986061,
-    price:'£11,567', priceAlt:'£13,194 ensuite', priceLo:11567,
+    price:'£11,567', priceAlt:'£13,194 ensuite', priceLo:11567, priceAltLo:13194,
     sizeShared:'12.5 m²', sizeEnsuite:'17 m²', sizeSharedVal:12.5, sizeEnsuiteVal:17.0,
     bath:'Shared or Ensuite', weeks:38, layout:'Corridors',
     dist:1527, postcode:'SE1 9JA', walkMin:27, bikeMin:13, ptMin:24,
@@ -438,7 +438,7 @@ const halls = [
       {label:'Clark\'s tour 2022', url:'https://www.youtube.com/watch?v=Rn0uAhPE9js'},
     ]},
   { id:'C5', cat:'C', name:'College Hall', lat:51.5221251, lon:-0.1312991,
-    price:'£13,148', priceAlt:'£15,152 ensuite', priceLo:13148,
+    price:'£13,148', priceAlt:'£15,152 ensuite', priceLo:13148, priceAltLo:15152,
     sizeShared:'12 m²', sizeEnsuite:'14 m²', sizeSharedVal:12.0, sizeEnsuiteVal:14.0,
     bath:'Shared (×3) or Ensuite (sink in room)', weeks:40, layout:'Corridors',
     dist:1336, postcode:'WC1E 7HZ', walkMin:22, bikeMin:8, ptMin:16,
@@ -692,7 +692,8 @@ function renderSection(list, label, rowClass) {
       </td>
       <td class="price-cell">
         <div class="price-main">${h.price}<span style="font-size:11px;color:#94A3B8;font-weight:400">/yr</span></div>
-        ${h.priceAlt ? `<div class="price-alt">${h.priceAlt}/yr</div>` : ''}
+        <div class="price-alt">£${Math.round(h.priceLo/h.weeks).toLocaleString()}/wk</div>
+        ${h.priceAlt ? `<div class="price-alt" style="margin-top:4px">${h.priceAlt}/yr</div><div class="price-alt">£${Math.round(h.priceAltLo/h.weeks).toLocaleString()}/wk</div>` : ''}
       </td>
       <td>
         <div>${h.sizeShared}</div>
